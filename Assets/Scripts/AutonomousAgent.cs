@@ -1,20 +1,176 @@
+using System.Runtime.InteropServices.WindowsRuntime;
+using Unity.VisualScripting;
+using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class AutonomousAgent : AIAgent
 {
-    public Perception perception;
+    [SerializeField] private AutonomousAgentData data;
+
+    [Header("Perception")]
+    public Perception seekPerception;
+    public Perception fleePerception;
+    public Perception flockPerception;
+    public Perception obstaclePerception;
+
+    float angle;
 
     private void Update()
     {
-        movement.ApplyForce(Vector3.forward * 10);
-        transform.position = Utilities.Wrap(transform.position, new Vector3(-5, -5, -5), new Vector3(5, 5, 5));
+        //movement.ApplyForce(Vector3.forward * 10);
+        transform.position = Utilities.Wrap(transform.position, new Vector3(-10, -5, -10), new Vector3(10, 5, 10));
 
-        Debug.DrawRay(transform.position, transform.forward * perception.maxDist, Color.yellow);
+        //Debug.DrawRay(transform.position, transform.forward * perception.maxDist, Color.yellow);
 
-        var gameObjects = perception.GetGameObjects();
-        foreach (var go in gameObjects)
+        //SEEK
+        if(seekPerception != null)
         {
-            Debug.DrawLine(transform.position, go.transform.position, Color.magenta);
+            var gameObjects = seekPerception.GetGameObjects();
+            if (gameObjects.Length > 0)
+            {
+                Vector3 force = Seek(gameObjects[0]);
+                movement.ApplyForce(force);
+            }
         }
+
+        //FLEE
+        if (fleePerception != null)
+        {
+            var gameObjects = fleePerception.GetGameObjects();
+            if (gameObjects.Length > 0)
+            {
+                Vector3 force = Flee(gameObjects[0]);
+                movement.ApplyForce(force);
+            }
+        }
+
+        //FLOCK
+        if (flockPerception != null)
+        {
+            var gameObjects = flockPerception.GetGameObjects();
+            if (gameObjects.Length > 0)
+            {
+                movement.ApplyForce(Cohesion(gameObjects) * data.cohesionWeight);
+                movement.ApplyForce(Separation(gameObjects, data.separationRadius) * data.separationWeight);
+                movement.ApplyForce(Alignment(gameObjects) * data.alignmentWeight);
+            }
+        }
+
+        //OBSTACLE
+        if (obstaclePerception != null)
+        {
+            if (obstaclePerception.CheckDirection(Vector3.forward))
+            {
+                Debug.DrawRay(transform.position, transform.rotation * Vector3.forward * 3, Color.red, 0.5f);
+            }
+            else
+            {
+                Debug.DrawRay(transform.position, transform.rotation * Vector3.forward * 3, Color.yellow, 0.5f);
+            }
+        }
+
+        //WANDER
+        if (movement.Acceleration.sqrMagnitude == 0)
+        {
+            Vector3 force = Wander();
+            movement.ApplyForce(force);
+        }
+
+        Vector3 acceleration = movement.Acceleration;
+        Mathf.Clamp(acceleration.y, -10, 10);
+        movement.Acceleration = acceleration;
+
+        if (movement.Direction.sqrMagnitude != 0)
+        {
+            transform.rotation = Quaternion.LookRotation(movement.Direction);
+        }
+
+        //foreach (var go in gameObjects)
+        //{
+        //    Debug.DrawLine(transform.position, go.transform.position, Color.magenta);
+        //}
+    }
+
+    private Vector3 Cohesion(GameObject[] neighbors)
+    {
+        Vector3 positions = Vector3.zero;
+        foreach (var n in neighbors)
+        {
+            positions += n.transform.position;
+        }
+
+        Vector3 center = positions / neighbors.Length;
+        Vector3 direction = center - transform.position;
+        Vector3 force = GetSteeringForce(direction);
+
+        return force;
+    }
+
+    private Vector3 Separation(GameObject[] neighbors, float radius)
+    {
+        Vector3 separation = Vector3.zero;
+        foreach (var n in neighbors)
+        {
+            Vector3 direction = transform.position - n.transform.position;
+            float distance = Vector3.Magnitude(direction);
+            if (distance < radius)
+            {
+                separation += direction / (distance * distance);
+            }
+        }
+        Vector3 force = GetSteeringForce(separation);
+        
+        return force;
+    }
+
+    private Vector3 Alignment(GameObject[] neighbors)
+    {
+        Vector3 velocities = Vector3.zero;
+        foreach (var n in neighbors)
+        {
+            velocities += n.GetComponent<AIAgent>().movement.Velocity;
+        }
+        Vector3 averageVelocity = velocities / neighbors.Length;
+        Vector3 force = GetSteeringForce(averageVelocity);
+        
+        return force;
+    }
+
+    private Vector3 Seek(GameObject go)
+    {
+        Vector3 direction = go.transform.position - transform.position;
+        Vector3 force = GetSteeringForce(direction);
+
+        return force;
+    }
+
+    private Vector3 Flee(GameObject go)
+    {
+        Vector3 direction = transform.position - go.transform.position;
+        Vector3 force = GetSteeringForce(direction);
+
+        return force;
+    }
+
+
+
+    private Vector3 Wander()
+    {
+        angle += Random.Range(-data.displacement, data.displacement);
+        Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.up);
+        Vector3 point = rotation * (Vector3.forward * data.radius);
+        Vector3 forward = movement.Direction * data.distance;
+        Vector3 force = GetSteeringForce(forward + point);
+        return force;
+    }
+
+    private Vector3 GetSteeringForce(Vector3 direction)
+    {
+        Vector3 desired = direction.normalized * movement.data.maxSpeed;
+        Vector3 steer = desired - movement.Velocity;
+        Vector3 force = Vector3.ClampMagnitude(steer, movement.data.maxForce);
+
+        return force;
     }
 }
