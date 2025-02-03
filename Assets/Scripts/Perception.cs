@@ -10,10 +10,12 @@ public abstract class Perception : MonoBehaviour
     public LayerMask layerMask = Physics.AllLayers;
 
     public abstract GameObject[] GetGameObjects();
-    public bool CheckDirection(Vector2 direction)
+    public bool CheckDirection(Vector3 direction)
     {
         Ray ray = new Ray(transform.position, transform.rotation * direction);
 
         return Physics.Raycast(ray, maxDist, layerMask);
     }
+
+    public virtual bool GetOpenDirection(ref Vector3 openDirection) { return false; }
 }

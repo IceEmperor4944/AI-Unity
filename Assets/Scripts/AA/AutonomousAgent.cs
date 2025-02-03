@@ -19,7 +19,7 @@ public class AutonomousAgent : AIAgent
     private void Update()
     {
         //movement.ApplyForce(Vector3.forward * 10);
-        transform.position = Utilities.Wrap(transform.position, new Vector3(-10, -5, -10), new Vector3(10, 5, 10));
+        transform.position = Utilities.Wrap(transform.position, new Vector3(-10, 0, -10), new Vector3(10, 10, 10));
 
         //Debug.DrawRay(transform.position, transform.forward * perception.maxDist, Color.yellow);
 
@@ -58,15 +58,13 @@ public class AutonomousAgent : AIAgent
         }
 
         //OBSTACLE
-        if (obstaclePerception != null)
+        if (obstaclePerception != null && obstaclePerception.CheckDirection(Vector3.forward))
         {
-            if (obstaclePerception.CheckDirection(Vector3.forward))
+            Vector3 direction = Vector3.zero;
+            if (obstaclePerception.GetOpenDirection(ref direction))
             {
-                Debug.DrawRay(transform.position, transform.rotation * Vector3.forward * 3, Color.red, 0.5f);
-            }
-            else
-            {
-                Debug.DrawRay(transform.position, transform.rotation * Vector3.forward * 3, Color.yellow, 0.5f);
+                Debug.DrawRay(transform.position, direction * 5, Color.red, 0.2f);
+                movement.ApplyForce(GetSteeringForce(direction) * data.obstacleWeight);
             }
         }
 
@@ -85,11 +83,6 @@ public class AutonomousAgent : AIAgent
         {
             transform.rotation = Quaternion.LookRotation(movement.Direction);
         }
-
-        //foreach (var go in gameObjects)
-        //{
-        //    Debug.DrawLine(transform.position, go.transform.position, Color.magenta);
-        //}
     }
 
     private Vector3 Cohesion(GameObject[] neighbors)
@@ -152,8 +145,6 @@ public class AutonomousAgent : AIAgent
 
         return force;
     }
-
-
 
     private Vector3 Wander()
     {

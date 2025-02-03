@@ -19,3 +19,4 @@ MonoBehaviour:
   separationWeight: 1
   separationRadius: 2
   alignmentWeight: 1
+  obstacleWeight: 20
