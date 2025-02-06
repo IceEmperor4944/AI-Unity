@@ -1,26 +1,47 @@
 using UnityEngine;
 
+// Ensure this component requires a NavPath component
+[RequireComponent(typeof(NavPath))]
 public class NavAgent : AIAgent
 {
-    public Waypoint Waypoint { get; set; }
+    // Reference to the navigation path component
+    private NavPath path;
 
     private void Start()
     {
-        var waypoints = FindObjectsByType<Waypoint>(FindObjectsSortMode.None);
+        // Get the NavPath component attached to this GameObject
+        path = GetComponent<NavPath>();
 
-        if(waypoints.Length > 0)
+        // Find the nearest navigation node based on the agent's current position
+        var startNode = NavNode.GetNearestNavNode(transform.position);
+
+        // If a valid navigation node is found, set the path's destination to that node
+        if (startNode != null)
         {
-            Waypoint = waypoints[Random.Range(0, waypoints.Length)];
+            path.Destination = startNode.transform.position;
         }
     }
 
     private void Update()
     {
-        if (Waypoint != null)
+        // If the agent has a target destination, move towards it
+        if (path.HasTarget)
         {
-            movement.MoveTowards(Waypoint.transform.position);
+            movement.MoveTowards(path.Destination);
+        }
+        else
+        {
+            // If there is no target, assign a random navigation node as the destination
+            NavNode destinationNode = NavNode.GetRandomNavNode();
+
+            // Ensure the node is valid before setting it as the destination
+            if (destinationNode != null)
+            {
+                path.Destination = destinationNode.transform.position;
+            }
         }
 
+        // Ensure the agent faces the direction of movement
         transform.forward = movement.Direction;
     }
 }

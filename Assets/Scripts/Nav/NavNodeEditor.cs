@@ -1,4 +1,3 @@
-using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,7 +13,11 @@ public class NavNodeEditor : MonoBehaviour
 	private NavNode activeNavNode = null;
 
 	private bool active = false;
-	
+
+	private Color white = new(1, 1, 1, 0.5f);
+	private Color green = new(0, 1, 0, 0.5f);
+	private Color red = new(1, 0, 0, 0.5f);
+
 	private void OnEnable()
 	{
 		if (!Application.isEditor)
@@ -28,7 +31,6 @@ public class NavNodeEditor : MonoBehaviour
 	{
 		SceneView.duringSceneGui -= OnScene;
 	}
-
 
 	void OnScene(SceneView scene)
 	{
@@ -78,7 +80,6 @@ public class NavNodeEditor : MonoBehaviour
 				navNode = null;
 				spawnable = false;
 			}
-			
 		}
 
 		// check mouse down
@@ -120,11 +121,21 @@ public class NavNodeEditor : MonoBehaviour
 			e.Use();
 		}
 
-		// delete nav node
-		if (e.isKey && e.keyCode == KeyCode.Minus)
+		// remove nav node
+		if (e.isKey && e.keyCode == KeyCode.D)
 		{
 			if (navNode != null)
 			{
+				// remove node from neighbors
+				foreach (NavNode neighbor in navNode.neighbors)
+				{
+					if (neighbor.neighbors.Contains(navNode))
+					{
+						neighbor.neighbors.Remove(navNode);
+					}
+				}
+
+				// remove nav node
 				DestroyImmediate(navNode.gameObject);
 			}
 			e.Use();
@@ -135,22 +146,34 @@ public class NavNodeEditor : MonoBehaviour
 	{
 		if (!active) return;
 		
-
+		// draw cursor sphere
 		if (spawnable && navNode == null)
 		{
-			Gizmos.color = Color.white;
-			Gizmos.DrawWireSphere(position, 1);
+			Gizmos.color = white;
+			Gizmos.DrawSphere(position, 1);
 		}
+		// draw sphere on nav node
 		if (navNode != null && navNode != activeNavNode)
 		{
-			Gizmos.color = Color.green;
-			Gizmos.DrawWireSphere(navNode.gameObject.transform.position, 1);
+			Gizmos.color = green;
+			Gizmos.DrawSphere(navNode.gameObject.transform.position, 1);
 		}
+		// draw connection sphere and line
 		if (activeNavNode != null)
 		{
-			Gizmos.color = (navNode != null && activeNavNode != navNode) ? Color.green : Color.red;
-			Gizmos.DrawWireSphere(activeNavNode.gameObject.transform.position, 1.5f);
-			Gizmos.DrawLine(activeNavNode.gameObject.transform.position + Vector3.up, position + Vector3.up);
+			bool connected = false;
+			foreach (NavNode neighbor in activeNavNode.neighbors)
+			{
+				if (neighbor == navNode)
+				{
+					connected = true;
+					break;
+				}
+			}
+
+			Gizmos.color = (navNode != null && activeNavNode != navNode && !connected) ? green : red;
+			Gizmos.DrawSphere(activeNavNode.gameObject.transform.position, 1.25f);
+			Gizmos.DrawLine(activeNavNode.gameObject.transform.position, position);
 		}
 
 		// draw connections
@@ -160,7 +183,7 @@ public class NavNodeEditor : MonoBehaviour
 			foreach (NavNode neighbors in node.neighbors)
 			{
 				Gizmos.color = Color.yellow;
-				Gizmos.DrawLine(node.transform.position + Vector3.up, neighbors.transform.position + Vector3.up);
+				Gizmos.DrawLine(node.transform.position, neighbors.transform.position);
 			}
 		}
 
