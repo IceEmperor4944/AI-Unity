@@ -18,7 +18,7 @@ public class NavAgent : AIAgent
         // If a valid navigation node is found, set the path's destination to that node
         if (startNode != null)
         {
-            path.Destination = startNode.transform.position;
+            path.GeneratePath(transform.position, transform.position);
         }
     }
 
@@ -37,7 +37,7 @@ public class NavAgent : AIAgent
             // Ensure the node is valid before setting it as the destination
             if (destinationNode != null)
             {
-                path.Destination = destinationNode.transform.position;
+                path.GeneratePath(transform.position, destinationNode.transform.position);
             }
         }
 

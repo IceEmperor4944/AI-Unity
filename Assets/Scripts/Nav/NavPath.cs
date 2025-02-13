@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEngine.Rendering.DebugUI;
 
 // Ensures that this component requires a NavAgent component
 [RequireComponent(typeof(NavAgent))]
@@ -23,35 +24,29 @@ public class NavPath : MonoBehaviour
     private Color red = new(1, 0, 0, 0.5f);    // End node color
 
     /// <summary>
-    /// Gets or sets the destination for pathfinding.
+    /// Gets the destination for pathfinding.
     /// When setting, it calculates the shortest path using Dijkstra's algorithm.
     /// </summary>
-    public Vector3 Destination
+    public Vector3 Destination => (TargetNode != null) ? TargetNode.transform.position : Vector3.zero;
+
+    public void GeneratePath(Vector3 startPos, Vector3 endPos)
     {
-        get
-        {
-            // Return the position of the current target node, or Vector3.zero if none exists
-            return (TargetNode != null) ? TargetNode.transform.position : Vector3.zero;
-        }
-        set
-        {
-            // Find the closest navigation nodes to the agent and the destination position
-            NavNode startNode = NavNode.GetNearestNavNode(agent.transform.position);
-            NavNode endNode = NavNode.GetNearestNavNode(value);
+        // Find the closest navigation nodes to the agent and the destination position
+        NavNode startNode = NavNode.GetNearestNavNode(startPos);
+        NavNode endNode = NavNode.GetNearestNavNode(endPos);
 
-            // Clear the existing path and reset all nodes before recalculating
-            path.Clear();
-            NavNode.ResetNodes();
+        // Clear the existing path and reset all nodes before recalculating
+        path.Clear();
+        NavNode.ResetNodes();
 
-            // Generate a new shortest path from the start node to the end node
-            NavDijkstra.Generate(startNode, endNode, ref path);
+        // Generate a new shortest path from the start node to the end node
+        NavDijkstra.Generate(startNode, endNode, ref path);
 
-            // Set the first node in the path as the new target node
-            TargetNode = startNode;
-        }
+        // Set the first node in the path as the new target node
+        TargetNode = startNode;
     }
 
-    private void Start()
+    private void Awake()
     {
         // Get the NavAgent component attached to the same GameObject
         agent = GetComponent<NavAgent>();
