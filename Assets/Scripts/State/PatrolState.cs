@@ -3,32 +3,33 @@ using UnityEngine;
 
 public class PatrolState : AIState
 {
-    Vector3 destination = Vector3.zero;
-
     public PatrolState(StateAgent agent) : base(agent)
     {
-        //
+        CreateTransition(nameof(IdleState))
+            .AddCondition(agent.destinationDistance, Condition.Predicate.Less, 0.5f)
+            .AddCondition(agent.enemySeen, false);
+
+        CreateTransition(nameof(ChaseState))
+            .AddCondition(agent.enemySeen, true);
     }
 
     public override void OnEnter()
     {
-        destination = NavNode.GetRandomNavNode().transform.position;
-        agent.movement.Destination = destination;
+        agent.movement.Destination = NavNode.GetRandomNavNode().transform.position;
         agent.movement.Resume();
     }
 
-    public override void OnExit()
+    public override void OnUpdate()
     {
-        Vector3 direction = agent.transform.position - destination;
-        direction.y = 0;
-        float distance = direction.magnitude;
-        if (distance <= 0.25f)
+        // rotate towards movement direction
+        if (agent.movement.Direction != Vector3.zero)
         {
-            agent.stateMachine.SetState(nameof(IdleState));
+            agent.transform.rotation = Quaternion.Lerp(agent.transform.rotation, 
+                Quaternion.LookRotation(agent.movement.Direction, Vector3.up), Time.deltaTime * 5);
         }
     }
 
-    public override void OnUpdate()
+    public override void OnExit()
     {
         //
     }

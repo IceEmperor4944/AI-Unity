@@ -20,13 +20,21 @@ public class RaycastPerception : Perception
             // raycast ray
             if (Physics.Raycast(ray, out RaycastHit raycastHit, maxDist, layerMask))
             {
+                Debug.DrawRay(ray.origin, ray.direction * raycastHit.distance, Color.yellow);
+
                 // check if collision is self, skip if so
                 if (raycastHit.collider.gameObject == this) continue;
                 // check tag, skip if tagName != "" and !CompareTag
                 if (tagName != "" && !raycastHit.collider.CompareTag(tagName)) continue;
 
+                Debug.DrawRay(ray.origin, ray.direction * raycastHit.distance, Color.green);
+
                 // add game object to results
                 result.Add(raycastHit.collider.gameObject);
+            }
+            else
+            {
+                Debug.DrawRay(ray.origin, ray.direction * maxDist, Color.red);
             }
         }
 

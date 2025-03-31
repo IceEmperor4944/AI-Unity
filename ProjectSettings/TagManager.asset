@@ -7,6 +7,8 @@ TagManager:
   - Enemy
   - Agent01
   - Agent02
+  - StateAgent01
+  - StateAgent02
   layers:
   - Default
   - TransparentFX
